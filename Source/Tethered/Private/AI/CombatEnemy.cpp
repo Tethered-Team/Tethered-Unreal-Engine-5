@@ -318,4 +318,17 @@ void ACombatEnemy::EndPlay(EEndPlayReason::Type EndPlayReason)
 
 	// clear the death timer
 	GetWorld()->GetTimerManager().ClearTimer(DeathTimer);
+
+
+}
+
+USceneComponent* ACombatEnemy::GetAimPointComponent_Implementation() const
+{
+	// fallback to the mesh root
+	return GetMesh();
+}
+
+bool ACombatEnemy::CanBeTargeted_Implementation() const
+{
+	return CurrentHP > 0.0f;
 }

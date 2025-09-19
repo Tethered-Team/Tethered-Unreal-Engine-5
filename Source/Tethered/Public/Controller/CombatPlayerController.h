@@ -8,6 +8,7 @@
 
 class UInputMappingContext;
 class ATetheredCharacter;
+class UTetheredCheatManager;
 
 /**
  *  Simple Player Controller for a third person combat game
@@ -19,6 +20,9 @@ class ACombatPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+public:
+	ACombatPlayerController();
+
 protected:
 
 	/** Input mapping context for this player */

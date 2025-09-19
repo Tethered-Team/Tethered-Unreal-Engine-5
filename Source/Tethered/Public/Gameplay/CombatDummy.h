@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Interfaces/CombatDamageable.h"
+#include "Interfaces/Aimable.h"
 #include "CombatDummy.generated.h"
 
 class UStaticMeshComponent;
@@ -14,7 +15,7 @@ class UPhysicsConstraintComponent;
  *  A simple invincible combat training dummy
  */
 UCLASS(abstract)
-class ACombatDummy : public AActor, public ICombatDamageable
+class ACombatDummy : public AActor, public ICombatDamageable, public IAimable
 {
 	GENERATED_BODY()
 	
@@ -51,6 +52,20 @@ public:
 	virtual void ApplyHealing(float Healing, AActor* Healer) override;
 
 	// ~End CombatDamageable interface
+
+	// ~Begin IAimable interface
+	
+	/** Returns the component to aim at (head/torso). */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Aimable")
+	USceneComponent* GetAimPointComponent() const;
+	virtual USceneComponent* GetAimPointComponent_Implementation() const;
+
+	/** Returns whether this actor can be targeted right now. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Aimable")
+	bool CanBeTargeted() const;
+	virtual bool CanBeTargeted_Implementation() const;
+
+	// ~End IAimable interface
 
 protected:
 

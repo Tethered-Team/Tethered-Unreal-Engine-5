@@ -5,8 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/CombatAttacker.h"
+
 #include "Interfaces/CombatDamageable.h"
+
+#include "Components/AimAssistComponent.h"
 #include "TetheredCharacter.generated.h"
+
+
 
 // Forward declarations
 class USpringArmComponent;
@@ -18,6 +23,7 @@ class UWidgetComponent;
 class UCombatComponent;
 class UHealthComponent;
 class UPlayerMovementComponent;
+class UAimAssistProfile;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTetheredCharacter, Log, All);
 
@@ -55,6 +61,11 @@ private:
 	/** Unified player movement component that handles all movement including dash */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UPlayerMovementComponent* PlayerMovementComponent;
+
+	/** Aim assist component for lock-on targeting */ 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UAimAssistComponent* AimAssistComponent;
+
 #pragma endregion Components
 
 #pragma region Input Actions
@@ -91,6 +102,43 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* RunAction;
 #pragma endregion Input Actions
+
+#pragma region Aim Assist
+protected:
+	/** Default aim assist profile to use */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Aim Assist")
+	UAimAssistProfile* DefaultAimAssistProfile;
+
+	/** Current movement input vector for aim assist */
+	FVector2D CurrentMovementInput = FVector2D::ZeroVector;
+
+	/** Current look input vector for aim assist */
+	FVector2D CurrentLookInput = FVector2D::ZeroVector;
+
+	/** Base launch speed towards targets */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aim Assist|Launch", meta = (ClampMin = 100.0f, ClampMax = 2000.0f))
+	float BaseLaunchSpeed = 800.0f;
+
+	/** Launch speed multiplier for charged attacks */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aim Assist|Launch", meta = (ClampMin = 1.0f, ClampMax = 3.0f))
+	float ChargedLaunchMultiplier = 1.5f;
+
+	/** Maximum lunge distance for combo attacks */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aim Assist|Launch", meta = (ClampMin = 200.0f, ClampMax = 2000.0f, Units = "cm"))
+	float ComboMaxLungeDistance = 600.0f;
+
+	/** Maximum lunge distance for charged attacks */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aim Assist|Launch", meta = (ClampMin = 200.0f, ClampMax = 2000.0f, Units = "cm"))
+	float ChargedMaxLungeDistance = 1000.0f;
+
+	/** Minimum distance to prevent overshooting close targets */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aim Assist|Launch", meta = (ClampMin = 50.0f, ClampMax = 300.0f, Units = "cm"))
+	float MinLungeDistance = 100.0f;
+
+	/** Upward component of launch velocity for better feel */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aim Assist|Launch", meta = (ClampMin = 0.0f, ClampMax = 500.0f, Units = "cm/s"))
+	float LaunchUpwardVelocity = 200.0f;
+#pragma endregion Aim Assist
 
 #pragma region Camera and Respawn
 protected:
@@ -160,6 +208,10 @@ public:
 	/** Handles look inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void DoLook(float Yaw, float Pitch);
+
+protected:
+	/** Updates aim assist component with current input data */
+	void UpdateAimAssistInput();
 #pragma endregion Input Handlers
 
 #pragma region Component Accessors
@@ -176,6 +228,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UPlayerMovementComponent* GetPlayerMovementComponent() const { return PlayerMovementComponent; }
 
+	/** Get the aim assist component */
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UAimAssistComponent* GetAimAssistComponent() const { return AimAssistComponent; }
+
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
@@ -188,6 +244,26 @@ public:
 	/** Get the default camera distance */
 	FORCEINLINE float GetDefaultCameraDistance() const { return DefaultCameraDistance; }
 #pragma endregion Component Accessors
+
+#pragma region Aim Assist Interface
+public:
+	/** Set the active aim assist profile */
+	UFUNCTION(BlueprintCallable, Category = "Aim Assist")
+	void SetAimAssistProfile(UAimAssistProfile* NewProfile);
+
+	/** Get the currently targeted actor */
+	UFUNCTION(BlueprintPure, Category = "Aim Assist")
+	AActor* GetCurrentTarget() const;
+
+	/** Enable or disable aim assist */
+	UFUNCTION(BlueprintCallable, Category = "Aim Assist")
+	void SetAimAssistEnabled(bool bEnabled);
+
+protected:
+	/** Launch the character towards a target actor with configurable max distance */
+	UFUNCTION(BlueprintCallable, Category = "Aim Assist")
+	void LaunchTowardsTarget(AActor* Target, bool bIsChargedAttack = false, float MaxLungeDistance = 0.0f);
+#pragma endregion Aim Assist Interface
 
 #pragma region ICombatAttacker Interface
 public:

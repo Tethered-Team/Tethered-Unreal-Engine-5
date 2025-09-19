@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Interfaces/CombatAttacker.h"
 #include "Interfaces/CombatDamageable.h"
+#include "Interfaces/Aimable.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/TimerHandle.h"
 #include "CombatEnemy.generated.h"
@@ -28,7 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyDied);
  *  Its bundled AI Controller runs logic through StateTree
  */
 UCLASS(abstract)
-class ACombatEnemy : public ACharacter, public ICombatAttacker, public ICombatDamageable
+class ACombatEnemy : public ACharacter, public ICombatAttacker, public ICombatDamageable, public IAimable
 {
 	GENERATED_BODY()
 
@@ -214,4 +215,19 @@ protected:
 
 	/** EndPlay cleanup */
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
+
+public:
+	// ~Begin IAimable interface
+
+	/** Returns the component to aim at (head/torso). */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Aimable")
+	USceneComponent* GetAimPointComponent() const;
+	virtual USceneComponent* GetAimPointComponent_Implementation() const;
+
+	/** Returns whether this actor can be targeted right now. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Aimable")
+	bool CanBeTargeted() const;
+	virtual bool CanBeTargeted_Implementation() const;
+
+	// ~End IAimable interface
 };

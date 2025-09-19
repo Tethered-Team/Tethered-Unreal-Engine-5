@@ -9,12 +9,9 @@
 #include "CollisionQueryParams.h"
 #include "DrawDebugHelpers.h"
 
-// Console command to toggle combat trace debug draws
-static TAutoConsoleVariable<bool> CVarShowCombatTraces(
-	TEXT("Combat.ShowTraces"),
-	false,
-	TEXT("Show debug visualization for combat traces"),
-	ECVF_Default);
+#if !UE_BUILD_SHIPPING
+#include "Debug/TetheredCheatManager.h"
+#endif
 
 UCombatComponent::UCombatComponent()
 {
@@ -127,6 +124,8 @@ void UCombatComponent::ComboAttack()
 			AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, ComboAttackMontage);
 		}
 	}
+
+
 }
 
 void UCombatComponent::ChargedAttack()
@@ -205,8 +204,8 @@ void UCombatComponent::DoAttackTrace(FName DamageSourceBone)
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 	
-	// Check if debug visualization is enabled (either by component setting or console variable)
-	const bool bShouldShowDebug = bDebugShowTraces || CVarShowCombatTraces.GetValueOnGameThread();
+	// Check if debug visualization is enabled via the global combat debug state
+	const bool bShouldShowDebug = bDebugShowTraces || IsGlobalCombatDebugEnabled();
 	
 	// Add debug visualization
 	if (bShouldShowDebug && GetWorld())
@@ -231,6 +230,11 @@ void UCombatComponent::DoAttackTrace(FName DamageSourceBone)
 		
 		// Draw direction arrow
 		DrawDebugDirectionalArrow(GetWorld(), TraceStart, TraceEnd, 50.0f, FColor::Blue, false, 2.0f, 0, 3.0f);
+		
+		// Draw trace info text
+		DrawDebugString(GetWorld(), TraceStart + FVector(0, 0, 100), 
+			FString::Printf(TEXT("Combat Trace: %.1fcm x %.1fcm"), MeleeTraceDistance, MeleeTraceRadius * 2.0f), 
+			nullptr, FColor::White, 2.0f);
 	}
 	
 	if (GetWorld()->SweepMultiByObjectType(OutHits, TraceStart, TraceEnd, FQuat::Identity, ObjectParams, CollisionShape, QueryParams))
@@ -245,10 +249,12 @@ void UCombatComponent::DoAttackTrace(FName DamageSourceBone)
 				DrawDebugSphere(GetWorld(), CurrentHit.ImpactPoint, 10.0f, 8, FColor::Orange, false, 3.0f, 0, 2.0f);
 				DrawDebugLine(GetWorld(), CurrentHit.ImpactPoint, CurrentHit.ImpactPoint + (CurrentHit.ImpactNormal * 100.0f), FColor::White, false, 3.0f, 0, 3.0f);
 				
-				// Draw text with actor name
+				// Draw text with actor name and damage info
 				if (CurrentHit.GetActor())
 				{
-					DrawDebugString(GetWorld(), CurrentHit.ImpactPoint + FVector(0, 0, 50), CurrentHit.GetActor()->GetName(), nullptr, FColor::White, 3.0f);
+					DrawDebugString(GetWorld(), CurrentHit.ImpactPoint + FVector(0, 0, 50), 
+						FString::Printf(TEXT("HIT: %s (%.1f dmg)"), *CurrentHit.GetActor()->GetName(), MeleeDamage), 
+						nullptr, FColor::Red, 3.0f, true);
 				}
 			}
 			
@@ -275,7 +281,11 @@ void UCombatComponent::DoAttackTrace(FName DamageSourceBone)
 		if (bShouldShowDebug && GetWorld())
 		{
 			// Draw the full sweep in a dimmer color to show it didn't hit anything
-			DrawDebugCapsule(GetWorld(), (TraceStart + TraceEnd) * 0.5f, MeleeTraceDistance * 0.5f + MeleeTraceRadius, MeleeTraceRadius, FQuat::FindBetweenNormals(FVector::UpVector, OwnerCharacter->GetActorForwardVector()), FColor::Red, false, 2.0f, 0, 1.0f);
+			DrawDebugCapsule(GetWorld(), (TraceStart + TraceEnd) * 0.5f, MeleeTraceDistance * 0.5f + MeleeTraceRadius, MeleeTraceRadius, 
+				FQuat::FindBetweenNormals(FVector::UpVector, OwnerCharacter->GetActorForwardVector()), 
+				FColor::Red, false, 2.0f, 0, 1.0f);
+			
+			DrawDebugString(GetWorld(), TraceStart + FVector(0, 0, 50), TEXT("NO HITS"), nullptr, FColor::Red, 2.0f);
 		}
 	}
 }
@@ -328,4 +338,16 @@ void UCombatComponent::CheckChargedAttack()
 	{
 		AnimInstance->Montage_JumpToSection(bIsChargingAttack ? ChargeLoopSection : ChargeAttackSection, ChargedAttackMontage);
 	}
+}
+
+bool UCombatComponent::IsGlobalCombatDebugEnabled()
+{
+	// Check if the global combat debug is enabled via CheatManager
+	// We'll access this through the CheatManager system
+	#if !UE_BUILD_SHIPPING
+		// Import the CheatManager header and use its static function
+		return UTetheredCheatManager::IsGlobalCombatDebugEnabled();
+	#else
+		return false;
+	#endif
 }

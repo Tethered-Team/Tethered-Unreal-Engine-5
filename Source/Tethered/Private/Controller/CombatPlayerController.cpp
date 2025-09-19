@@ -10,7 +10,16 @@
 #include "Engine/World.h"
 #include "Blueprint/UserWidget.h"
 #include "Widgets/Input/SVirtualJoystick.h"
+#include "Debug/TetheredCheatManager.h"
 #include "Tethered.h"
+
+ACombatPlayerController::ACombatPlayerController()
+{
+	// Set our custom cheat manager class
+#if !UE_BUILD_SHIPPING
+	CheatClass = UTetheredCheatManager::StaticClass();
+#endif
+}
 
 void ACombatPlayerController::BeginPlay()
 {

@@ -138,8 +138,11 @@ void UHealthComponent::ApplyDamage(float Damage, AActor* DamageCauser, const FVe
 	{
 		if (USkeletalMeshComponent* Mesh = OwnerCharacter->GetMesh())
 		{
-			// Apply impulse at damage location
-			Mesh->AddImpulseAtLocation(DamageImpulse, DamageLocation);
+			if (Mesh->IsSimulatingPhysics())
+			{
+				// apply an impulse to the ragdoll
+				Mesh->AddImpulseAtLocation(DamageImpulse * Mesh->GetMass(), DamageLocation);
+			}
 		}
 	}
 }

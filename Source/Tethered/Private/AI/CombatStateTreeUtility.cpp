@@ -15,8 +15,16 @@ bool FStateTreeCharacterGroundedCondition::TestCondition(FStateTreeExecutionCont
 {
 	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
-	// is the character currently grounded?
-	bool bCondition = InstanceData.Character->GetMovementComponent()->IsMovingOnGround();
+	// Check if the character is grounded (whether moving or stationary)
+	UCharacterMovementComponent* MovementComp = InstanceData.Character->GetCharacterMovement();
+	bool bCondition = false;
+	
+	if (MovementComp)
+	{
+		// Check if the movement mode is walking/grounded (includes stationary)
+		bCondition = (MovementComp->MovementMode == MOVE_Walking || 
+		              MovementComp->MovementMode == MOVE_NavWalking);
+	}
 
 	return InstanceData.bMustBeOnAir ? !bCondition : bCondition;
 }

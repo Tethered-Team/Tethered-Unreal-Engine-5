@@ -48,3 +48,17 @@ void ACombatDummy::ApplyHealing(float Healing, AActor* Healer)
 {
 	// unused
 }
+
+// IAimable interface implementation
+USceneComponent* ACombatDummy::GetAimPointComponent_Implementation() const
+{
+	// Return the dummy mesh as the aim point
+	return Dummy;
+}
+
+bool ACombatDummy::CanBeTargeted_Implementation() const
+{
+	// Always targetable for training purposes
+	return true;
+}
+

@@ -16,6 +16,8 @@
 #include "Components/CombatComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/PlayerMovementComponent.h"
+#include "Components/AimAssistComponent.h"
+#include "Data/AimAssistProfile.h"
 
 
 DEFINE_LOG_CATEGORY(LogTetheredCharacter);
@@ -56,6 +58,7 @@ ATetheredCharacter::ATetheredCharacter()
 	CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	PlayerMovementComponent = CreateDefaultSubobject<UPlayerMovementComponent>(TEXT("PlayerMovementComponent"));
+	AimAssistComponent = CreateDefaultSubobject<UAimAssistComponent>(TEXT("AimAssistComponent"));
 
 	// Set the player tag
 	Tags.Add(FName("Player"));
@@ -87,6 +90,12 @@ void ATetheredCharacter::BeginPlay()
 	{
 		PlayerMovementComponent->Initialize(this);
 	}
+
+	// Initialize aim assist with default profile
+	if (AimAssistComponent && DefaultAimAssistProfile)
+	{
+		AimAssistComponent->SetActiveProfile(DefaultAimAssistProfile);
+	}
 }
 
 void ATetheredCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -97,7 +106,29 @@ void ATetheredCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ATetheredCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	// Most tick logic is now handled by the individual components
+	
+	// Update aim assist with current input data
+	UpdateAimAssistInput();
+}
+
+void ATetheredCharacter::UpdateAimAssistInput()
+{
+	if (!AimAssistComponent) return;
+
+	// Convert movement input to aim direction
+	FVector2D AimDirection = FVector2D::ZeroVector;
+	
+
+	const FVector ForwardVector = GetActorForwardVector();
+	AimDirection = FVector2D(ForwardVector.X, ForwardVector.Y).GetSafeNormal();
+
+
+	// Calculate input magnitude from both movement and look inputs
+	const float MovementMagnitude = CurrentMovementInput.Size();
+	const float LookMagnitude = CurrentLookInput.Size();
+	const float CombinedMagnitude = FMath::Max(MovementMagnitude, LookMagnitude);
+	
+	AimAssistComponent->SetAimInputMagnitude(CombinedMagnitude);
 }
 
 void ATetheredCharacter::NotifyControllerChanged()
@@ -166,6 +197,10 @@ void ATetheredCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void ATetheredCharacter::Move(const FInputActionValue& Value)
 {
+	// Store movement input for aim assist
+	FVector2D MovementVector = Value.Get<FVector2D>();
+	CurrentMovementInput = MovementVector;
+
 	// Route through PlayerMovementComponent for unified movement handling
 	if (PlayerMovementComponent)
 	{
@@ -176,6 +211,10 @@ void ATetheredCharacter::Move(const FInputActionValue& Value)
 void ATetheredCharacter::Look(const FInputActionValue& Value)
 {
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	
+	// Store look input for aim assist
+	CurrentLookInput = LookAxisVector;
+	
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
 
@@ -189,7 +228,26 @@ void ATetheredCharacter::ComboAttackPressed()
 {
 	if (CombatComponent)
 	{
+		// Get current target before combat starts
+		AActor* CurrentTarget = nullptr;
+		if (AimAssistComponent)
+		{
+			CurrentTarget = AimAssistComponent->GetCurrentTarget();
+		}
+
 		CombatComponent->DoComboAttackStart();
+		
+		// Trigger aim assist for melee attacks
+		if (AimAssistComponent)
+		{
+			AimAssistComponent->OnMeleeCommit();
+		}
+
+		// Launch towards target if we have one (combo attack)
+		if (CurrentTarget && PlayerMovementComponent)
+		{
+			LaunchTowardsTarget(CurrentTarget, false, ComboMaxLungeDistance);
+		}
 	}
 }
 
@@ -205,7 +263,26 @@ void ATetheredCharacter::ChargedAttackReleased()
 {
 	if (CombatComponent)
 	{
+		// Get current target before combat starts
+		AActor* CurrentTarget = nullptr;
+		if (AimAssistComponent)
+		{
+			CurrentTarget = AimAssistComponent->GetCurrentTarget();
+		}
+
 		CombatComponent->DoChargedAttackEnd();
+		
+		// Trigger aim assist for charged melee attacks
+		if (AimAssistComponent)
+		{
+			AimAssistComponent->OnMeleeCommit();
+		}
+
+		// Launch towards target for charged attacks (stronger and longer range)
+		if (CurrentTarget && PlayerMovementComponent)
+		{
+			LaunchTowardsTarget(CurrentTarget, true, ChargedMaxLungeDistance);
+		}
 	}
 }
 
@@ -234,6 +311,34 @@ void ATetheredCharacter::RunReleased()
 	}
 }
 #pragma endregion Input System
+
+#pragma region Aim Assist Interface
+void ATetheredCharacter::SetAimAssistProfile(UAimAssistProfile* NewProfile)
+{
+	if (AimAssistComponent)
+	{
+		AimAssistComponent->SetActiveProfile(NewProfile);
+	}
+	DefaultAimAssistProfile = NewProfile;
+}
+
+AActor* ATetheredCharacter::GetCurrentTarget() const
+{
+	if (AimAssistComponent)
+	{
+		return AimAssistComponent->GetCurrentTarget();
+	}
+	return nullptr;
+}
+
+void ATetheredCharacter::SetAimAssistEnabled(bool bEnabled)
+{
+	if (AimAssistComponent)
+	{
+		AimAssistComponent->SetComponentTickEnabled(bEnabled);
+	}
+}
+#pragma endregion Aim Assist Interface
 
 #pragma region ICombatAttacker Interface
 void ATetheredCharacter::DoAttackTrace(FName DamageSourceBone)
@@ -292,3 +397,65 @@ void ATetheredCharacter::HandleDeath()
 	OnDeath();
 }
 #pragma endregion ICombatDamageable Interface
+
+void ATetheredCharacter::LaunchTowardsTarget(AActor* Target, bool bIsChargedAttack, float MaxLungeDistance)
+{
+	if (!Target) return;
+
+	// Use the provided MaxLungeDistance, or fall back to the appropriate default
+	float EffectiveMaxDistance = MaxLungeDistance;
+	if (EffectiveMaxDistance <= 0.0f)
+	{
+		EffectiveMaxDistance = bIsChargedAttack ? ChargedMaxLungeDistance : ComboMaxLungeDistance;
+	}
+
+	// Calculate direction and distance to target
+	const FVector CurrentLocation = GetActorLocation();
+	const FVector TargetLocation = Target->GetActorLocation();
+	const FVector DirectionToTarget = (TargetLocation - CurrentLocation).GetSafeNormal();
+	const float DistanceToTarget = FVector::Dist(CurrentLocation, TargetLocation);
+
+	// Don't launch if too close
+	if (DistanceToTarget < MinLungeDistance)
+	{
+		UE_LOG(LogTetheredCharacter, Log, TEXT("Target %s too close (%.1f < %.1f), not launching"), 
+			*Target->GetName(), DistanceToTarget, MinLungeDistance);
+		return;
+	}
+
+	// Calculate the actual lunge distance (limited by max range)
+	const float ActualLungeDistance = FMath::Min(DistanceToTarget, EffectiveMaxDistance);
+	
+	// Calculate target position for the lunge
+	const FVector LungeTargetLocation = CurrentLocation + (DirectionToTarget * ActualLungeDistance);
+
+	// Calculate launch velocity
+	float LaunchSpeed = BaseLaunchSpeed;
+	if (bIsChargedAttack)
+	{
+		LaunchSpeed *= ChargedLaunchMultiplier;
+	}
+
+	// Scale launch speed based on lunge distance ratio for better control
+	const float DistanceRatio = FMath::Clamp(ActualLungeDistance / EffectiveMaxDistance, 0.3f, 1.0f);
+	LaunchSpeed *= DistanceRatio;
+
+	// Create launch velocity towards the calculated lunge target
+	FVector LaunchVelocity = DirectionToTarget * LaunchSpeed;
+	LaunchVelocity.Z = LaunchUpwardVelocity; // Configurable upward component
+
+	// Launch the character
+	LaunchCharacter(LaunchVelocity, true, true);
+
+	// Log launch information
+	if (DistanceToTarget > EffectiveMaxDistance)
+	{
+		UE_LOG(LogTetheredCharacter, Log, TEXT("Lunging towards %s: Distance %.1f > Max %.1f, lunging %.1f units"), 
+			*Target->GetName(), DistanceToTarget, EffectiveMaxDistance, ActualLungeDistance);
+	}
+	else
+	{
+		UE_LOG(LogTetheredCharacter, Log, TEXT("Lunging towards %s: Distance %.1f, lunging full distance"), 
+			*Target->GetName(), DistanceToTarget);
+	}
+}

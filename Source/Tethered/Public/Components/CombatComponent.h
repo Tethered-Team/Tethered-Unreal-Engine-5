@@ -107,6 +107,18 @@ protected:
 public:
 	/** Initialize the component with its owner */
 	void Initialize(ATetheredCharacter* InOwnerCharacter);
+
+	/** Gets the current attacking state */
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool IsAttacking() const { return bIsAttacking; }
+
+	/** Gets the current combo count */
+	UFUNCTION(BlueprintPure, Category="Combat")
+	int32 GetComboCount() const { return ComboCount; }
+
+	/** Gets whether currently charging an attack */
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool IsChargingAttack() const { return bIsChargingAttack; }
 #pragma endregion Core Interface
 
 #pragma region Combat Actions
@@ -149,5 +161,11 @@ public:
 	/** Performs the charged attack hold check */
 	virtual void CheckChargedAttack() override;
 #pragma endregion ICombatAttacker Interface
+
+#pragma region Debug
+private:
+	/** Checks if global combat debug is enabled via CheatManager */
+	static bool IsGlobalCombatDebugEnabled();
+#pragma endregion Debug
 };
 
