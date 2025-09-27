@@ -33,6 +33,13 @@ ATetheredCharacterBase::ATetheredCharacterBase()
 void ATetheredCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+
+
+}
+
+void ATetheredCharacterBase::BindMovementAttributes()
+{
 	UTetheredAbilitySystemComponent* TetheredASC = Cast<UTetheredAbilitySystemComponent>(AbilitySystemComponent);
 	const UTetheredAttributeSet* TetheredAttributeSet = AbilitySystemComponent->GetSet<UTetheredAttributeSet>();
 
@@ -42,8 +49,6 @@ void ATetheredCharacterBase::BeginPlay()
 
 
 	RecalcMaxSpeed({});
-
-
 }
 
 void ATetheredCharacterBase::RecalcMaxSpeed(const FOnAttributeChangeData&)

@@ -15,6 +15,8 @@
 #include "Math/RotationMatrix.h"
 #include "TetheredGameplayTags.h"
 
+
+
 ATetheredPlayerController::ATetheredPlayerController()
 {
 	// Set our custom cheat manager class
@@ -120,6 +122,12 @@ void ATetheredPlayerController::Move(const FInputActionValue& InputActionValue)
 				// Check if any movement-blocking abilities are active
 				if (ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TetheredGameplayTags::TAG_State_Movement_Dashing.GetTag().GetTagName())))
 				{
+#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+					GEngine->AddOnScreenDebugMessage(32, 0.f, FColor::Yellow, TEXT("Movement input blocked by dash ability"));
+					UE_LOG(LogTetheredPlayerController, Log, TEXT("Movement input blocked by dash ability"));
+#endif
+					ApplyMovementInput(InputAxisVector, ControlledPawn);
+
 					return; // Don't process movement input during dash, etc.
 				}
 			}

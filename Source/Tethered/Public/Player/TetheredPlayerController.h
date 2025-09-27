@@ -8,6 +8,9 @@
 #include "GameplayTagContainer.h"
 #include "TetheredPlayerController.generated.h"
 
+
+DECLARE_LOG_CATEGORY_CLASS(LogTetheredPlayerController, Log, All);
+
 class UTetheredInputConfig;
 class UInputMappingContext;
 class UInputAction;
