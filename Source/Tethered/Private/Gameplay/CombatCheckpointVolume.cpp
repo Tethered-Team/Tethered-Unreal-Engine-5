@@ -1,8 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Gameplay/CombatCheckpointVolume.h"
-#include "Character/TetheredCharacter.h"
-#include "Controller/CombatPlayerController.h"
+#include "Character/TetheredPlayerCharacter.h"
+#include "Player/TetheredPlayerController.h"
 
 ACombatCheckpointVolume::ACombatCheckpointVolume()
 {
@@ -29,11 +29,11 @@ void ACombatCheckpointVolume::OnOverlap(UPrimitiveComponent* OverlappedComponent
 	}
 		
 	// has the player entered this volume?
-	ATetheredCharacter* PlayerCharacter = Cast<ATetheredCharacter>(OtherActor);
+	ATetheredPlayerCharacter* PlayerCharacter = Cast<ATetheredPlayerCharacter>(OtherActor);
 
 	if (PlayerCharacter)
 	{
-		if (ACombatPlayerController* PC = Cast<ACombatPlayerController>(PlayerCharacter->GetController()))
+		if (ATetheredPlayerController* PC = Cast<ATetheredPlayerController>(PlayerCharacter->GetController()))
 		{
 			// raise the checkpoint used flag
 			bCheckpointUsed = true;
