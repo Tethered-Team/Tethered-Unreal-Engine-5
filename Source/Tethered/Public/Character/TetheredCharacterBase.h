@@ -34,10 +34,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	void BindMovementAttributes();
-
-	void RecalcMaxSpeed(const struct FOnAttributeChangeData&);
-
 	virtual void InitAbilityActorInfo();
 
 	UPROPERTY(EditAnywhere, Category = "Combat")

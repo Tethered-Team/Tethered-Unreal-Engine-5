@@ -38,26 +38,7 @@ void ATetheredCharacterBase::BeginPlay()
 
 }
 
-void ATetheredCharacterBase::BindMovementAttributes()
-{
-	UTetheredAbilitySystemComponent* TetheredASC = Cast<UTetheredAbilitySystemComponent>(AbilitySystemComponent);
-	const UTetheredAttributeSet* TetheredAttributeSet = AbilitySystemComponent->GetSet<UTetheredAttributeSet>();
 
-
-	TetheredASC->GetGameplayAttributeValueChangeDelegate(TetheredAttributeSet->GetMovementSpeedAttribute()).AddUObject(this, &ATetheredCharacterBase::RecalcMaxSpeed);
-	TetheredASC->GetGameplayAttributeValueChangeDelegate(TetheredAttributeSet->GetSprintMultiplierAttribute()).AddUObject(this, &ATetheredCharacterBase::RecalcMaxSpeed);
-
-
-	RecalcMaxSpeed({});
-}
-
-void ATetheredCharacterBase::RecalcMaxSpeed(const FOnAttributeChangeData&)
-{
-	const UTetheredAttributeSet* TetheredAttributeSet = AbilitySystemComponent->GetSet<UTetheredAttributeSet>();
-	const float BaseSpeed = TetheredAttributeSet->GetMovementSpeed();
-	const float SprintMultiplier = TetheredAttributeSet->GetSprintMultiplier();
-	GetCharacterMovement()->MaxWalkSpeed = BaseSpeed * SprintMultiplier;
-}
 
 void ATetheredCharacterBase::InitAbilityActorInfo()
 {
