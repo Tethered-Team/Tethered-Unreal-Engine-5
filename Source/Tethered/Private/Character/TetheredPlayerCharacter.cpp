@@ -22,7 +22,6 @@ void ATetheredPlayerCharacter::PossessedBy(AController* NewController)
 
 	InitAbilityActorInfo();
 	AddCharacterAbilities();
-	BindMovementAttributes();
 }
 
 void ATetheredPlayerCharacter::OnRep_PlayerState()

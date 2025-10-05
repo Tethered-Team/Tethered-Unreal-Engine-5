@@ -31,6 +31,7 @@ class TETHERED_API ATetheredPlayerController : public APlayerController
 public:
 	ATetheredPlayerController();
 	virtual void PlayerTick(float DeltaTime) override;
+	virtual void PostProcessInput(const float DeltaTime, const bool bGamePaused) override;
 
 protected:
 	virtual void BeginPlay() override;

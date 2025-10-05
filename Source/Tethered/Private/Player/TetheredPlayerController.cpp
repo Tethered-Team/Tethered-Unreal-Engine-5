@@ -38,6 +38,13 @@ void ATetheredPlayerController::PlayerTick(float DeltaTime)
 }
 
 
+void ATetheredPlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
+{
+	if (GetASC())
+		GetASC()->ProcessAbilityInput(DeltaTime, bGamePaused);
+	Super::PostProcessInput(DeltaTime, bGamePaused);
+}
+
 void ATetheredPlayerController::AbilityInputTagPressed(FGameplayTag Tag)
 {
 	if (UTetheredAbilitySystemComponent* ASC = GetASC())
@@ -47,11 +54,6 @@ void ATetheredPlayerController::AbilityInputTagReleased(FGameplayTag Tag)
 {
 	if (UTetheredAbilitySystemComponent* ASC = GetASC())
 		ASC->AbilityInputTagReleased(Tag);
-}
-void ATetheredPlayerController::AbilityInputTagHeld(FGameplayTag Tag)
-{
-	if (UTetheredAbilitySystemComponent* ASC = GetASC())
-		ASC->AbilityInputTagHeld(Tag);
 }
 
 
@@ -102,7 +104,7 @@ void ATetheredPlayerController::SetupInputComponent()
 	TetheredInputComponent->BindAbilityActions(InputConfig, this,
 		&ThisClass::AbilityInputTagPressed,
 		&ThisClass::AbilityInputTagReleased,
-		&ThisClass::AbilityInputTagHeld);
+		nullptr);
 
 }
 
