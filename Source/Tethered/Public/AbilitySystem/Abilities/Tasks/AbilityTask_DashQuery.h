@@ -13,6 +13,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(
     FRotator, Facing,
     float, TravelDistance /*2D in cm*/);
 
+/** Broadcast when no valid placement found but we want the final position anyway. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(
+    FDashQueryFallback,
+    FVector, FinalPosition,
+    FRotator, Facing,
+    float, TravelDistance,
+    FVector, LastValidPosition /*Last position that was collision-free, or start if none*/);
+
+
+
 /**
  * Samples candidate endpoints along a direction and returns the furthest valid one.
  * Valid = optional NavMesh projection -> optional ground snap -> capsule-overlap-free at end.
@@ -23,9 +33,13 @@ class TETHERED_API UAbilityTask_DashQuery : public UAbilityTask
 {
     GENERATED_BODY()
 public:
-    /** Result: fires once immediately after the query runs. */
+    /** Result: fires once immediately after the query runs when a valid placement is found. */
     UPROPERTY(BlueprintAssignable, Category = "Tethered|Dash")
     FDashQueryResult OnResult;
+
+    /** Fallback: fires when no valid placement is found but we still want the final position. */
+    UPROPERTY(BlueprintAssignable, Category = "Tethered|Dash")
+    FDashQueryFallback OnFallback;
 
     /** Single-channel version (backwards compatible). */
     UFUNCTION(BlueprintCallable, Category = "Tethered|Dash",
@@ -42,6 +56,10 @@ public:
         float ClearanceBuffer = 10.f,
         TEnumAsByte<ECollisionChannel> CollisionChannel = ECC_Pawn,
         float DebugSeconds = 0.f);
+
+
+
+
 
     /** Multi-channel version (BP-friendly array). */
     UFUNCTION(BlueprintCallable, Category = "Tethered|Dash",

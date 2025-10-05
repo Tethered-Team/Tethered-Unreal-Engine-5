@@ -68,7 +68,27 @@ void UAbilityTask_DashQuery::Activate()
     FVector End; FRotator Rot; float Travel = 0.f;
 
     const bool bFound = RunQuery(Char, End, Rot, Travel);
-    OnResult.Broadcast(bFound, End, Rot, Travel);
+    
+    if (bFound)
+    {
+        OnResult.Broadcast(bFound, End, Rot, Travel);
+    }
+    else
+    {
+        // Broadcast fallback when no valid placement found
+        const FVector StartLocation = Char ? Char->GetActorLocation() : FVector::ZeroVector;
+        const FVector DesiredDir = P_DesiredDir.IsNearlyZero() 
+            ? (Char ? Char->GetActorForwardVector() : FVector::ForwardVector)
+            : P_DesiredDir.GetSafeNormal2D();
+        
+        const FVector FinalPosition = StartLocation + (DesiredDir * P_MaxDistance);
+        const FRotator Facing = DesiredDir.Rotation();
+        const float TravelDist = P_MaxDistance;
+        
+        // Last valid position is the start since nothing was valid
+        OnFallback.Broadcast(FinalPosition, Facing, TravelDist, StartLocation);
+    }
+    
     EndTask(); // one-shot
 }
 
