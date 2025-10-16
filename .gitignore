@@ -3,7 +3,6 @@
 #################################
 /[Bb]uild
 /[Bb]uilds
-/Binaries
 /DerivedDataCache
 /Intermediate
 /Saved
@@ -45,3 +44,14 @@
 # Miscellaneous Generated Files #
 #################################
 # ADD AS NEED BE
+/PackagedGame
+Binaries/Win64/Tethered-Win64-DebugGame.exe
+Binaries/Win64/Tethered-Win64-DebugGame.lib
+Binaries/Win64/Tethered-Win64-DebugGame.pdb
+Binaries/Win64/Tethered-Win64-DebugGame.exp
+Binaries/Win64/Tethered-Win64-Shipping.exe
+Binaries/Win64/Tethered-Win64-Shipping.exp
+Binaries/Win64/Tethered-Win64-DebugGame.target
+Binaries/Win64/Tethered-Win64-Shipping.lib
+Binaries/Win64/Tethered-Win64-Shipping.pdb
+Binaries/Win64/Tethered-Win64-Shipping.target

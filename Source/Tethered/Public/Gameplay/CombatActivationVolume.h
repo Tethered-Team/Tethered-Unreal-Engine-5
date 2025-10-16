@@ -23,7 +23,7 @@ class ACombatActivationVolume : public AActor
 protected:
 
 	/** List of actors to activate when this volume is entered */
-	UPROPERTY(EditAnywhere, Category="Activation Volume")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category="Activation Volume")
 	TArray<AActor*> ActorsToActivate;
 
 public:	
@@ -34,7 +34,7 @@ public:
 protected:
 
 	/** Handles overlaps with the box volume */
-	UFUNCTION()
+	UFUNCTION(BlueprintNativeEvent, Category = "Activation Volume")
 	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 };
